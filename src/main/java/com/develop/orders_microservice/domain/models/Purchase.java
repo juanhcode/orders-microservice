@@ -1,8 +1,5 @@
 package com.develop.orders_microservice.domain.models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -20,25 +17,22 @@ public class Purchase {
     @Column(name = "order_id")
     private Integer orderId;
 
-    @ManyToOne()
-    @JoinColumn(name = "user_id")
+    @Column(name = "user_id")
     @NotNull
-    private Users userId;
+    private Integer userId;
 
     @Column(name = "delivery_address")
     @NotNull
     @NotBlank
     private String deliveryAddress;
 
-    @ManyToOne()
-    @JoinColumn(name = "payment_type_id")
+    @Column(name = "payment_type_id")
     @NotNull
-    private PaymentType paymentTypeId;
+    private Integer paymentTypeId;
 
-    @ManyToOne()
-    @JoinColumn(name = "payment_status_id")
+    @Column(name = "payment_status_id")
     @NotNull
-    private PaymentStatus paymentStatusId;
+    private Integer paymentStatusId;
 
     @NotNull
     private BigDecimal total;

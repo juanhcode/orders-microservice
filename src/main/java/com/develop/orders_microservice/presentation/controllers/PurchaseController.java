@@ -2,14 +2,16 @@ package com.develop.orders_microservice.presentation.controllers;
 
 import com.develop.orders_microservice.domain.interfaces.PurchaseService;
 import com.develop.orders_microservice.domain.models.Purchase;
-import com.develop.orders_microservice.domain.models.Users;
+import com.develop.orders_microservice.infraestructure.messaging.SnsService;
 import com.develop.orders_microservice.presentation.exceptions.BadRequestException;
 import com.develop.orders_microservice.presentation.exceptions.ResourceNotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.util.List;
 import java.util.Map;
@@ -21,26 +23,41 @@ public class PurchaseController {
     @Lazy
     private final PurchaseService purchaseService;
 
-    public PurchaseController(PurchaseService purchaseService) {
+    public PurchaseController(PurchaseService purchaseService, SnsService snsService) {
         this.purchaseService = purchaseService;
     }
 
+
     @GetMapping("/{userId}")
     public ResponseEntity<?> getPurchasesByUserId(@PathVariable Integer userId) {
-        Users user = new Users();
-        user.setId(userId);
-
-        List<Purchase> purchases = purchaseService.getPurchasesByUserId(user);
-        return ResponseEntity.ok(purchases);
+        try {
+            List<Purchase> purchases = purchaseService.getPurchasesByUserId(userId);
+            if (purchases.isEmpty()) {
+                throw new ResourceNotFoundException("No purchases found for user with id: " + userId);
+            }
+            return ResponseEntity.ok(purchases);
+        } catch (HttpServerErrorException ex) {
+            System.out.println("Error retrieving purchases, exception message: " + ex.getMessage());
+            throw new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving purchases");
+        } catch (Exception ex) {
+            System.out.println("Unexpected error: " + ex.getMessage());
+            throw new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error");
+        }
     }
 
     @PostMapping
     public ResponseEntity<?> savePurchase(@Valid @RequestBody Purchase purchase, BindingResult result) {
-        if (result.hasErrors()) {
-            throw new BadRequestException("Invalid purchase data: " + result.getFieldErrors());
+        try {
+            if (result.hasErrors()) {
+                throw new BadRequestException("Invalid purchase data: " + result.getFieldErrors());
+            }
+            purchaseService.savePurchase(purchase);
+            return ResponseEntity.ok().body(Map.of("message", "Purchase saved successfully", "purchaseId", purchase.getOrderId()));
+        } catch (Exception ex) {
+            System.out.println("Error saving purchase, exception message: " + ex.getMessage());
+            throw new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, "Error saving purchase");
         }
-        purchaseService.savePurchase(purchase);
-        return ResponseEntity.ok().body(Map.of("message", "Purchase saved successfully", "purchaseId", purchase.getOrderId()));
+
     }
 
     @PutMapping("/{orderId}")
@@ -53,7 +70,7 @@ public class PurchaseController {
         }
         purchase.setOrderId(orderId);
         purchaseService.savePurchase(purchase);
-        return ResponseEntity.ok(purchase);
+        return ResponseEntity.ok(Map.of("message", "Purchase updated successfully", "purchaseId", purchase.getOrderId()));
     }
 
     @DeleteMapping("/{orderId}")
