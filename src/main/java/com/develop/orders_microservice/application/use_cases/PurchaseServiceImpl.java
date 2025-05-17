@@ -59,14 +59,10 @@ public class PurchaseServiceImpl implements PurchaseService {
                 paymentStatus.getName()
         );
 
-        String purchaseDtoJson = "{"
-                + "orderId:" + purchaseDto.getOrderId() + ","
-                + "userId:" + purchaseDto.getUserId() + ","
-                + "paymentStatus:" + paymentStatus.getName()
-                + "}";
-
         // Publicar el mensaje
         try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            String purchaseDtoJson = objectMapper.writeValueAsString(purchaseDto);
             snsService.publishMessage(purchaseDtoJson);
         } catch (Exception e) {
             System.out.println("Error al convertir la compra a JSON: " + e.getMessage());
