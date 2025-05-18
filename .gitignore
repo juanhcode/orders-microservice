@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+.env
+/src/main/java/com/develop/orders_microservice/infraestructure/security/secrets.yml
