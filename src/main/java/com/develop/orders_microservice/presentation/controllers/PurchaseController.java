@@ -16,6 +16,7 @@ import org.springframework.web.client.HttpServerErrorException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/purchases")
@@ -27,47 +28,33 @@ public class PurchaseController {
         this.purchaseService = purchaseService;
     }
 
-
     @GetMapping("/{userId}")
     public ResponseEntity<?> getPurchasesByUserId(@PathVariable Integer userId) {
-        try {
-            List<Purchase> purchases = purchaseService.getPurchasesByUserId(userId);
-            if (purchases.isEmpty()) {
-                throw new ResourceNotFoundException("No purchases found for user with id: " + userId);
-            }
-            return ResponseEntity.ok(purchases);
-        } catch (HttpServerErrorException ex) {
-            System.out.println("Error retrieving purchases, exception message: " + ex.getMessage());
-            throw new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving purchases");
-        } catch (Exception ex) {
-            System.out.println("Unexpected error: " + ex.getMessage());
-            throw new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error");
+        List<Purchase> purchases = purchaseService.getPurchasesByUserId(userId);
+        if (purchases.isEmpty()) {
+            throw new ResourceNotFoundException("No purchases found for user with id: " + userId);
         }
+        return ResponseEntity.ok(purchases);
+    }
+
+    @GetMapping("/{userId}/{orderId}")
+    public ResponseEntity<?> getPurchasesByUserIdAndOrderId(@PathVariable Integer userId, @PathVariable Integer orderId) {
+        List<Purchase> purchases = purchaseService.getPurchasesByUserIdAndOrderId(userId, orderId);
+        if (purchases.isEmpty()) {
+            throw new ResourceNotFoundException("No purchases found for user with id: " + userId + " and order id: " + orderId);
+        }
+        return ResponseEntity.ok(purchases);
     }
 
     @PostMapping
     public ResponseEntity<?> savePurchase(@Valid @RequestBody Purchase purchase, BindingResult result) {
-        try {
-            if (result.hasErrors()) {
-                throw new BadRequestException("Invalid purchase data: " + result.getFieldErrors());
-            }
-            purchaseService.savePurchase(purchase);
-            return ResponseEntity.ok().body(Map.of("message", "Purchase saved successfully", "purchaseId", purchase.getOrderId()));
-        } catch (Exception ex) {
-            System.out.println("Error saving purchase, exception message: " + ex.getMessage());
-            throw new HttpServerErrorException(HttpStatus.INTERNAL_SERVER_ERROR, "Error saving purchase");
-        }
-
+        purchaseService.savePurchase(purchase);
+        return ResponseEntity.ok().body(Map.of("message", "Purchase saved successfully", "purchaseId", purchase.getOrderId()));
     }
 
     @PutMapping("/{orderId}")
     public ResponseEntity<?> updatePurchase(@Valid @PathVariable Integer orderId, @RequestBody Purchase purchase, BindingResult result) {
-        Optional<Purchase> purchaseOptional = purchaseService.getPurchaseById(orderId);
-        if (purchaseOptional.isEmpty()) {
-            throw new ResourceNotFoundException("Purchase with id: " + orderId + " not found");
-        } else if (result.hasErrors()) {
-            throw new BadRequestException("Invalid purchase data: " + result.getFieldErrors());
-        }
+        purchaseService.getPurchaseById(orderId);
         purchase.setOrderId(orderId);
         purchaseService.savePurchase(purchase);
         return ResponseEntity.ok(Map.of("message", "Purchase updated successfully", "purchaseId", purchase.getOrderId()));
@@ -75,11 +62,8 @@ public class PurchaseController {
 
     @DeleteMapping("/{orderId}")
     public ResponseEntity<?> deletePurchase(@PathVariable Integer orderId) {
-        Optional<Purchase> purchaseOptional = purchaseService.getPurchaseById(orderId);
-        if (purchaseOptional.isEmpty()) {
-            throw new ResourceNotFoundException("Purchase with id: " + orderId + " not found");
-        }
+        purchaseService.getPurchaseById(orderId);
         purchaseService.deletePurchase(orderId);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

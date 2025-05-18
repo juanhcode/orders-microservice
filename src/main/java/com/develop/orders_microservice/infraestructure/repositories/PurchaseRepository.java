@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface PurchaseRepository extends CrudRepository <Purchase, Integer> {
     List<Purchase> findByUserId(Integer userId);
+    List<Purchase> findByUserIdAndOrderId(Integer userId, Integer orderId);
 }

@@ -18,22 +18,22 @@ public class Purchase {
     private Integer orderId;
 
     @Column(name = "user_id")
-    @NotNull
+    @NotNull(message = "User ID cannot be null")
     private Integer userId;
 
     @Column(name = "delivery_address")
-    @NotNull
-    @NotBlank
+    @NotNull(message = "Delivery address cannot be null")
+    @NotBlank(message = "Delivery address cannot be blank")
     private String deliveryAddress;
 
     @Column(name = "payment_type_id")
-    @NotNull
+    @NotNull(message = "Payment type ID cannot be null")
     private Integer paymentTypeId;
 
     @Column(name = "payment_status_id")
-    @NotNull
+    @NotNull(message = "Payment status ID cannot be null")
     private Integer paymentStatusId;
 
-    @NotNull
+    @NotNull(message = "Total cannot be null")
     private BigDecimal total;
 }

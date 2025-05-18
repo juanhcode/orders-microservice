@@ -7,7 +7,8 @@ import java.util.Optional;
 
 public interface PurchaseService {
     List<Purchase> getPurchasesByUserId(Integer userId);
+    List<Purchase> getPurchasesByUserIdAndOrderId(Integer userId, Integer orderId);
     void savePurchase(Purchase purchase);
     void deletePurchase(Integer purchaseId);
-    Optional<Purchase> getPurchaseById(Integer purchaseId);
+    Purchase getPurchaseById(Integer purchaseId);
 }

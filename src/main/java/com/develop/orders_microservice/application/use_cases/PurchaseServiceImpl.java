@@ -9,6 +9,7 @@ import com.develop.orders_microservice.infraestructure.clients.PaymentStatusClie
 import com.develop.orders_microservice.infraestructure.clients.models.PaymentStatus;
 import com.develop.orders_microservice.infraestructure.messaging.SnsService;
 import com.develop.orders_microservice.infraestructure.repositories.PurchaseRepository;
+import com.develop.orders_microservice.presentation.exceptions.ResourceNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
@@ -38,12 +39,41 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     @Override
+    public Purchase getPurchaseById(Integer purchaseId) {
+        Optional<Purchase> purchaseOptional = purchaseRepository.findById(purchaseId);
+        if (purchaseOptional.isEmpty()) {
+            throw new ResourceNotFoundException("Purchase not found");
+        }
+        return purchaseOptional.get();
+    }
+
+    @Override
     public List<Purchase> getPurchasesByUserId(Integer userId) {
         Optional<Users> userOptional = usersClientRest.getUser(userId);
         if (userOptional.isEmpty()) {
-            throw new RuntimeException("User not found");
+            throw new ResourceNotFoundException("User not found");
         }
         return purchaseRepository.findByUserId(userId);
+    }
+
+    @Override
+    public List<Purchase> getPurchasesByUserIdAndOrderId(Integer userId, Integer orderId) {
+        // Verificar si el usuario existe y si la orden existe
+        Optional<Users> userOptional = usersClientRest.getUser(userId);
+        if (userOptional.isEmpty()) {
+            throw new ResourceNotFoundException("User not found");
+        }
+        Optional<Purchase> purchaseOptional = purchaseRepository.findById(orderId);
+        if (purchaseOptional.isEmpty()) {
+            throw new ResourceNotFoundException("Purchase not found");
+        }
+
+        // Obtener la lista de compras por userId y orderId
+        List<Purchase> purchases = purchaseRepository.findByUserIdAndOrderId(userId, orderId);
+        if (purchases.isEmpty()) {
+            throw new ResourceNotFoundException("No purchases found for user with id: " + userId + " and order id: " + orderId);
+        }
+        return purchases;
     }
 
     @Override
@@ -73,10 +103,5 @@ public class PurchaseServiceImpl implements PurchaseService {
     @Override
     public void deletePurchase(Integer purchaseId) {
         purchaseRepository.deleteById(purchaseId);
-    }
-
-    @Override
-    public Optional<Purchase> getPurchaseById(Integer purchaseId) {
-        return purchaseRepository.findById(purchaseId);
     }
 }
