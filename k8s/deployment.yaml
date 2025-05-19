@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: orders-microservice
-          image: juanhoyos/microservice:orders-v1
+          image: juanhoyos/microservice:orders-v2
           ports:
             - containerPort: 8084
           env:
@@ -54,7 +54,7 @@ spec:
                   key: aws_region
             - name: AWS_SECRET_KEY
               valueFrom:
-                  secretKeyRef:
+                secretKeyRef:
                   name: credentials
                   key: aws_secret_key
             - name: AWS_SNS_TOPIC_ARN
