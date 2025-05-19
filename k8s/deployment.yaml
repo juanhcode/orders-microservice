@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-microservice
+  labels:
+    app: orders-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders-microservice
+  template:
+    metadata:
+      labels:
+        app: orders-microservice
+    spec:
+      containers:
+        - name: orders-microservice
+          image: juanhoyos/microservice:orders-v1
+          ports:
+            - containerPort: 8084
+          env:
+            - name: SERVER_PORT
+              value: "8084"
+            - name: DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: credentials
+                  key: username
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: credentials
+                  key: password
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: credentials
+                  key: url
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: credentials
+                  key: jwt
+            - name: AWS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: credentials
+                  key: aws_access_key_id
+            - name: AWS_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: credentials
+                  key: aws_region
+            - name: AWS_SECRET_KEY
+              valueFrom:
+                  secretKeyRef:
+                  name: credentials
+                  key: aws_secret_key
+            - name: AWS_SNS_TOPIC_ARN
+              valueFrom:
+                secretKeyRef:
+                  name: credentials
+                  key: aws_sns_topic_arn
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
