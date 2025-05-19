@@ -46,22 +46,22 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: credentials
-                  key: aws_access_key
+                  key: awsAccessKey
             - name: AWS_REGION
               valueFrom:
                 secretKeyRef:
                   name: credentials
-                  key: aws_region
+                  key: awsRegion
             - name: AWS_SECRET_KEY
               valueFrom:
                 secretKeyRef:
                   name: credentials
-                  key: aws_secret_key
+                  key: awsSecretKey
             - name: AWS_SNS_TOPIC_ARN
               valueFrom:
                 secretKeyRef:
                   name: credentials
-                  key: aws_sns_topic_arn
+                  key: awsSnsTopicArn
           resources:
             limits:
               memory: "512Mi"
