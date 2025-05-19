@@ -31,6 +31,8 @@
 		<spring-cloud.version>2024.0.1</spring-cloud.version>
 		<sonar.organization>juanhcode</sonar.organization>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+		<sonar.projectKey>juanhcode_orders-microservice</sonar.projectKey>
+		<sonar.login>${env.SONAR_TOKEN}</sonar.login>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -162,6 +164,11 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.sonarsource.scanner.maven</groupId>
+				<artifactId>sonar-maven-plugin</artifactId>
+				<version>3.9.1.2184</version>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
