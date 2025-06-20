@@ -19,7 +19,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/purchases")
+@RequestMapping("/orders/purchases")
 public class PurchaseController {
     @Lazy
     private final PurchaseService purchaseService;
