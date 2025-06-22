@@ -9,12 +9,12 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FeignConfig {
 
+    @Value("${jwt.secret.key}")
+    private String jwtSecretKey;
+
     @Bean
     public RequestInterceptor requestInterceptor() {
         return new RequestInterceptor() {
-            @Value("${jwt.secret.key}")
-            private String jwtSecretKey;
-
             @Override
             public void apply(RequestTemplate template) {
                 if (!jwtSecretKey.isEmpty()) {
