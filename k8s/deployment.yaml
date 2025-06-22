@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: orders-microservice
-          image: juanhoyos/microservice:orders-v6
+          image: juanhoyos/microservice:orders-v7
           ports:
             - containerPort: 8084
           env:
@@ -62,16 +62,11 @@ spec:
                 secretKeyRef:
                   name: credentials
                   key: awsSnsTopicArn
-            - name: FEIGN_CLIENT_URL_PAYMENT_STATUS
+            - name: FEIGN_CLIENT_URL
               valueFrom:
                 secretKeyRef:
                   name: credentials
-                  key: feignClientUrlPaymentStatus
-            - name: FEIGN_CLIENT_URL_USERS
-              valueFrom:
-                secretKeyRef:
-                  name: credentials
-                  key: feignClientUrlUsers
+                  key: feignClientUrl
           resources:
             limits:
               memory: "512Mi"
