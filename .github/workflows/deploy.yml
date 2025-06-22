@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  IMAGE_NAME: juanhoyos/microservice:orders-v8
+  IMAGE_NAME: juanhoyos/microservice:orders-v9
   REGISTRY: docker.io
 
 jobs:

@@ -2,27 +2,34 @@ package com.develop.orders_microservice.infraestructure.configurations;
 
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import jakarta.servlet.http.HttpServletRequest; // Use jakarta.servlet.http for Spring Boot 3+
+import java.util.Enumeration;
 
 @Configuration
-public class FeignConfig {
+public class FeignConfig implements RequestInterceptor {
 
-    @Value("${jwt.secret.key}")
-    private String jwtSecretKey;
+    private static final String AUTHORIZATION_HEADER = "Authorization";
 
-    @Bean
-    public RequestInterceptor requestInterceptor() {
-        return new RequestInterceptor() {
-            @Override
-            public void apply(RequestTemplate template) {
-                if (!jwtSecretKey.isEmpty()) {
-                    template.header("Authorization", "Bearer " + jwtSecretKey);
-                } else {
-                    throw new IllegalArgumentException("JWT secret key is not provided");
+    @Override
+    public void apply(RequestTemplate template) {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            HttpServletRequest request = attributes.getRequest();
+            Enumeration<String> headerNames = request.getHeaderNames();
+            if (headerNames != null) {
+                while (headerNames.hasMoreElements()) {
+                    String name = headerNames.nextElement();
+                    if (name.equalsIgnoreCase(AUTHORIZATION_HEADER)) {
+                        String headerValue = request.getHeader(name);
+                        template.header(name, headerValue);
+                        break;
+                    }
                 }
             }
-        };
+        }
     }
 }
