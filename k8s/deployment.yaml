@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: orders-microservice
-          image: juanhoyos/microservice:orders-v4
+          image: juanhoyos/microservice:orders-v5
           ports:
             - containerPort: 8084
           env:
