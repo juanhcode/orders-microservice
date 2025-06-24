@@ -1,20 +1,26 @@
 package com.develop.orders_microservice.application.use_cases;
 
 import com.develop.orders_microservice.application.dtos.PurchaseDto;
+import com.develop.orders_microservice.application.dtos.PurchaseRequestDto;
 import com.develop.orders_microservice.domain.interfaces.PurchaseService;
 import com.develop.orders_microservice.domain.models.Purchase;
+import com.develop.orders_microservice.domain.models.PurchaseProduct;
 import com.develop.orders_microservice.infraestructure.clients.UsersClientRest;
 import com.develop.orders_microservice.infraestructure.clients.models.Users;
 import com.develop.orders_microservice.infraestructure.clients.PaymentStatusClientRest;
 import com.develop.orders_microservice.infraestructure.clients.models.PaymentStatus;
 import com.develop.orders_microservice.infraestructure.messaging.SnsService;
+import com.develop.orders_microservice.infraestructure.repositories.PurchaseProductRepository;
 import com.develop.orders_microservice.infraestructure.repositories.PurchaseRepository;
+import com.develop.orders_microservice.presentation.exceptions.BadRequestException;
 import com.develop.orders_microservice.presentation.exceptions.ResourceNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PurchaseServiceImpl implements PurchaseService {
@@ -23,19 +29,22 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final PaymentStatusClientRest paymentStatusClientRest;
     private final SnsService snsService;
     private final UsersClientRest usersClientRest;
+    private final PurchaseProductRepository purchaseProductRepository;
 
     public PurchaseServiceImpl
             (
             PurchaseRepository purchaseRepository,
             PaymentStatusClientRest paymentStatusClientRest,
             SnsService snsService,
-            UsersClientRest usersClientRest
+            UsersClientRest usersClientRest,
+            PurchaseProductRepository purchaseProductRepository
             )
     {
         this.purchaseRepository = purchaseRepository;
         this.paymentStatusClientRest = paymentStatusClientRest;
         this.snsService = snsService;
         this.usersClientRest =  usersClientRest;
+        this.purchaseProductRepository = purchaseProductRepository;
     }
 
     @Override
@@ -77,19 +86,48 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     @Override
-    public void savePurchase(Purchase purchase) {
-        purchaseRepository.save(purchase);
+    public Purchase savePurchase(PurchaseRequestDto purchaseRequest) {
+        // Crear la compra principal
+        Purchase purchase = new Purchase();
+        purchase.setUserId(purchaseRequest.getUserId());
+        purchase.setDeliveryAddress(purchaseRequest.getDeliveryAddress());
+        purchase.setPaymentTypeId(purchaseRequest.getPaymentTypeId());
+        purchase.setPaymentStatusId(purchaseRequest.getPaymentStatusId());
 
+        // Calcular total
+        BigDecimal total = purchaseRequest.getProducts().stream()
+                .map(p -> BigDecimal.valueOf(p.getTotal()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        purchase.setTotal(total);
+
+        // Guardar la compra principal
+        Purchase savedPurchase = purchaseRepository.save(purchase);
+
+        // Guardar los productos
+        List<PurchaseProduct> products = purchaseRequest.getProducts().stream()
+                .map(p -> {
+                    PurchaseProduct pp = new PurchaseProduct();
+                    pp.setPurchaseId(savedPurchase.getOrderId());
+                    pp.setProductId(p.getProductId().intValue()); // Convertir Long a Integer
+                    pp.setQuantity(p.getQuantity());
+                    pp.setTotal(BigDecimal.valueOf(p.getTotal()));
+                    return pp;
+                })
+                .collect(Collectors.toList());
+
+        purchaseProductRepository.saveAll(products);
+
+        // Notificación SNS
         PaymentStatus paymentStatus = paymentStatusClientRest.getPaymentStatusNameById(purchase.getPaymentStatusId());
-
-//         Crear el DTO con el nombre del estado de pago
         PurchaseDto purchaseDto = new PurchaseDto(
-                purchase.getOrderId(),
-                purchase.getUserId(),
-                paymentStatus.getName()
+                savedPurchase.getOrderId(),
+                savedPurchase.getUserId(),
+                paymentStatus.getName(),
+                purchaseRequest.getProducts().stream()
+                        .map(p -> p.getProductId().intValue())
+                        .collect(Collectors.toList())
         );
 
-        // Publicar el mensaje
         try {
             ObjectMapper objectMapper = new ObjectMapper();
             String purchaseDtoJson = objectMapper.writeValueAsString(purchaseDto);
@@ -98,6 +136,88 @@ public class PurchaseServiceImpl implements PurchaseService {
             System.out.println("Error al convertir la compra a JSON: " + e.getMessage());
             throw new RuntimeException("Error al publicar el mensaje en SNS", e);
         }
+        return savedPurchase;
+    }
+
+
+    @Override
+    public Purchase updatePurchase(Integer orderId, PurchaseRequestDto purchaseRequest) {
+        // Validar los productos primero
+        if (purchaseRequest.getProducts() == null || purchaseRequest.getProducts().isEmpty()) {
+            throw new BadRequestException("Products list cannot be empty");
+        }
+
+        // Obtener la orden existente
+        Purchase existingPurchase = getPurchaseById(orderId);
+
+        // Actualizar los campos básicos
+        existingPurchase.setUserId(purchaseRequest.getUserId());
+        existingPurchase.setDeliveryAddress(purchaseRequest.getDeliveryAddress());
+        existingPurchase.setPaymentTypeId(purchaseRequest.getPaymentTypeId());
+        existingPurchase.setPaymentStatusId(purchaseRequest.getPaymentStatusId());
+
+        // Calcular y validar el nuevo total
+        BigDecimal total;
+        try {
+            total = purchaseRequest.getProducts().stream()
+                    .map(p -> {
+                        if (p.getTotal() == null) {
+                            throw new BadRequestException("Product total cannot be null for product: " + p.getProductId());
+                        }
+                        return BigDecimal.valueOf(p.getTotal());
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+        } catch (NullPointerException e) {
+            throw new BadRequestException("Invalid product data: " + e.getMessage());
+        }
+
+        existingPurchase.setTotal(total);
+
+        // Guardar la orden actualizada
+        Purchase updatedPurchase = purchaseRepository.save(existingPurchase);
+
+        // Eliminar los productos antiguos
+        purchaseProductRepository.deleteByPurchaseId(orderId);
+
+        // Guardar los nuevos productos con validación
+        List<PurchaseProduct> products = purchaseRequest.getProducts().stream()
+                .map(p -> {
+                    if (p.getProductId() == null || p.getQuantity() == null || p.getTotal() == null) {
+                        throw new BadRequestException("Invalid product data: all fields are required");
+                    }
+
+                    PurchaseProduct pp = new PurchaseProduct();
+                    pp.setPurchaseId(orderId);
+                    pp.setProductId(p.getProductId().intValue());
+                    pp.setQuantity(p.getQuantity());
+                    pp.setTotal(BigDecimal.valueOf(p.getTotal()));
+                    return pp;
+                })
+                .collect(Collectors.toList());
+
+        purchaseProductRepository.saveAll(products);
+
+        // Notificación SNS
+        try {
+            PaymentStatus paymentStatus = paymentStatusClientRest.getPaymentStatusNameById(purchaseRequest.getPaymentStatusId());
+            PurchaseDto purchaseDto = new PurchaseDto(
+                    orderId,
+                    purchaseRequest.getUserId(),
+                    paymentStatus.getName(),
+                    purchaseRequest.getProducts().stream()
+                            .map(p -> p.getProductId().intValue())
+                            .collect(Collectors.toList())
+            );
+
+            ObjectMapper objectMapper = new ObjectMapper();
+            String purchaseDtoJson = objectMapper.writeValueAsString(purchaseDto);
+            snsService.publishMessage(purchaseDtoJson);
+        } catch (Exception e) {
+            // Log the error but don't fail the operation
+            System.err.println("Error sending SNS notification: " + e.getMessage());
+        }
+
+        return updatedPurchase;
     }
 
     @Override
