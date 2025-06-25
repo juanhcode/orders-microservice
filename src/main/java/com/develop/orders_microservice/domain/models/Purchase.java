@@ -37,7 +37,7 @@ public class Purchase {
 
     @Column(name = "delivery_id")
     @NotNull(message = "Delivery ID cannot be null")
-    private Long deliveryId = 2L;
+    private Long deliveryId;
 
     @NotNull(message = "Total cannot be null")
     private BigDecimal total;

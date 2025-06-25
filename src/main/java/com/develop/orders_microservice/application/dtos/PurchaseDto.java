@@ -11,5 +11,6 @@ public class PurchaseDto {
     private Integer orderId;
     private Integer userId;
     private String paymentStatusName;
+    private String statusDeliveryName;
     private List<Integer> productIds;
 }

@@ -19,6 +19,7 @@ import com.develop.orders_microservice.presentation.exceptions.BadRequestExcepti
 import com.develop.orders_microservice.presentation.exceptions.ResourceNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -174,10 +175,11 @@ public class PurchaseServiceImpl implements PurchaseService {
 
         // Notificación SNS
         PaymentStatus paymentStatus = paymentStatusClientRest.getPaymentStatusNameById(purchase.getPaymentStatusId());
-        PurchaseDto purchaseDto = new PurchaseDto(
+        PurchaseDto purchaseSaveSnsDto = new PurchaseDto(
                 savedPurchase.getOrderId(),
                 savedPurchase.getUserId(),
                 paymentStatus.getName(),
+                savedDelivery.getStatus(),
                 purchaseRequest.getProducts().stream()
                         .map(p -> p.getProductId().intValue())
                         .collect(Collectors.toList())
@@ -185,7 +187,7 @@ public class PurchaseServiceImpl implements PurchaseService {
 
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            String purchaseDtoJson = objectMapper.writeValueAsString(purchaseDto);
+            String purchaseDtoJson = objectMapper.writeValueAsString(purchaseSaveSnsDto);
             snsService.publishMessage(purchaseDtoJson);
         } catch (Exception e) {
             System.out.println("Error al convertir la compra a JSON: " + e.getMessage());
@@ -196,6 +198,7 @@ public class PurchaseServiceImpl implements PurchaseService {
 
 
     @Override
+    @Transactional
     public Purchase updatePurchase(Integer orderId, PurchaseRequestDto purchaseRequest) {
         // Validar los productos primero
         if (purchaseRequest.getProducts() == null || purchaseRequest.getProducts().isEmpty()) {
@@ -210,6 +213,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         existingPurchase.setDeliveryAddress(purchaseRequest.getDeliveryAddress());
         existingPurchase.setPaymentTypeId(purchaseRequest.getPaymentTypeId());
         existingPurchase.setPaymentStatusId(purchaseRequest.getPaymentStatusId());
+
 
         // Calcular y validar el nuevo total
         BigDecimal total;
@@ -230,6 +234,9 @@ public class PurchaseServiceImpl implements PurchaseService {
 
         // Guardar la orden actualizada
         Purchase updatedPurchase = purchaseRepository.save(existingPurchase);
+
+        // Obtener el delivery asociado a la orden
+        Delivery delivery = deliveryClientRest.getDeliveryById(updatedPurchase.getDeliveryId());
 
         // Eliminar los productos antiguos
         purchaseProductRepository.deleteByPurchaseId(orderId);
@@ -259,6 +266,7 @@ public class PurchaseServiceImpl implements PurchaseService {
                     orderId,
                     purchaseRequest.getUserId(),
                     paymentStatus.getName(),
+                    delivery.getStatus(),
                     purchaseRequest.getProducts().stream()
                             .map(p -> p.getProductId().intValue())
                             .collect(Collectors.toList())
