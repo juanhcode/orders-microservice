@@ -2,10 +2,13 @@ package com.develop.orders_microservice.application.use_cases;
 
 import com.develop.orders_microservice.application.dtos.PurchaseDto;
 import com.develop.orders_microservice.application.dtos.PurchaseRequestDto;
+import com.develop.orders_microservice.application.dtos.PurchaseResponseDto;
 import com.develop.orders_microservice.domain.interfaces.PurchaseService;
 import com.develop.orders_microservice.domain.models.Purchase;
 import com.develop.orders_microservice.domain.models.PurchaseProduct;
+import com.develop.orders_microservice.infraestructure.clients.DeliveryClientRest;
 import com.develop.orders_microservice.infraestructure.clients.UsersClientRest;
+import com.develop.orders_microservice.infraestructure.clients.models.Delivery;
 import com.develop.orders_microservice.infraestructure.clients.models.Users;
 import com.develop.orders_microservice.infraestructure.clients.PaymentStatusClientRest;
 import com.develop.orders_microservice.infraestructure.clients.models.PaymentStatus;
@@ -30,6 +33,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final SnsService snsService;
     private final UsersClientRest usersClientRest;
     private final PurchaseProductRepository purchaseProductRepository;
+    private final DeliveryClientRest deliveryClientRest;
 
     public PurchaseServiceImpl
             (
@@ -37,7 +41,8 @@ public class PurchaseServiceImpl implements PurchaseService {
             PaymentStatusClientRest paymentStatusClientRest,
             SnsService snsService,
             UsersClientRest usersClientRest,
-            PurchaseProductRepository purchaseProductRepository
+            PurchaseProductRepository purchaseProductRepository,
+            DeliveryClientRest deliveryClientRest
             )
     {
         this.purchaseRepository = purchaseRepository;
@@ -45,6 +50,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         this.snsService = snsService;
         this.usersClientRest =  usersClientRest;
         this.purchaseProductRepository = purchaseProductRepository;
+        this.deliveryClientRest = deliveryClientRest;
     }
 
     @Override
@@ -57,16 +63,42 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     @Override
-    public List<Purchase> getPurchasesByUserId(Integer userId) {
+    public List<PurchaseResponseDto> getPurchasesByUserId(Integer userId) {
         Optional<Users> userOptional = usersClientRest.getUser(userId);
         if (userOptional.isEmpty()) {
             throw new ResourceNotFoundException("User not found");
         }
-        return purchaseRepository.findByUserId(userId);
+        // Buscar las compras por userId
+        List<Purchase> purchases = purchaseRepository.findByUserId(userId);
+        if (purchases.isEmpty()) {
+            throw new ResourceNotFoundException("No purchases found for user with id: " + userId);
+        }
+        System.out.println("Los deliveryId de las orders son: " + purchases.stream().map(Purchase::getDeliveryId).collect(Collectors.toList()));
+        // Obtener los deliverys asociados a las compras
+        List<Delivery> deliveries = purchases.stream()
+                .map(purchase -> deliveryClientRest.getDeliveryById(purchase.getDeliveryId()))
+                .collect(Collectors.toList());
+        // Combinar las compras y los deliverys en PurchaseResponseDto
+        List<PurchaseResponseDto> purchaseResponseDtos = purchases.stream().map(purchase -> {
+            Delivery delivery = deliveries.stream()
+                    .filter(d -> d.getId().equals(purchase.getDeliveryId()))
+                    .findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException("Delivery not found for purchase with id: " + purchase.getOrderId()));
+            PurchaseResponseDto purchaseResponseDto = new PurchaseResponseDto();
+            purchaseResponseDto.setOrderId(Long.valueOf(purchase.getOrderId()));
+            purchaseResponseDto.setUserId(Long.valueOf(purchase.getUserId()));
+            purchaseResponseDto.setDeliveryAddress(purchase.getDeliveryAddress());
+            purchaseResponseDto.setPaymentTypeId(purchase.getPaymentTypeId());
+            purchaseResponseDto.setPaymentStatusId(purchase.getPaymentStatusId());
+            purchaseResponseDto.setDeliveryName(delivery.getStatus());
+            purchaseResponseDto.setTotal(purchase.getTotal());
+            return purchaseResponseDto;
+        }).collect(Collectors.toList());
+        return purchaseResponseDtos;
     }
 
     @Override
-    public List<Purchase> getPurchasesByUserIdAndOrderId(Integer userId, Integer orderId) {
+    public PurchaseResponseDto getPurchaseByUserIdAndOrderId(Integer userId, Integer orderId) {
         // Verificar si el usuario existe y si la orden existe
         Optional<Users> userOptional = usersClientRest.getUser(userId);
         if (userOptional.isEmpty()) {
@@ -76,23 +108,46 @@ public class PurchaseServiceImpl implements PurchaseService {
         if (purchaseOptional.isEmpty()) {
             throw new ResourceNotFoundException("Purchase not found");
         }
-
-        // Obtener la lista de compras por userId y orderId
-        List<Purchase> purchases = purchaseRepository.findByUserIdAndOrderId(userId, orderId);
-        if (purchases.isEmpty()) {
+        Delivery delivery = deliveryClientRest.getDeliveryById(purchaseOptional.get().getDeliveryId());
+        if (delivery == null) {
+            throw new ResourceNotFoundException("Delivery not found for purchase with id: " + orderId);
+        }
+        // Buscar el orden por userId y orderId
+        Purchase purchases = purchaseRepository.findByUserIdAndOrderId(userId, orderId);
+        if (purchases == null) {
             throw new ResourceNotFoundException("No purchases found for user with id: " + userId + " and order id: " + orderId);
         }
-        return purchases;
+        // Combinar el purchase obtenido y el deliveryName en un PurchaseResponseDto
+        PurchaseResponseDto purchaseResponseDto = new PurchaseResponseDto();
+        purchaseResponseDto.setOrderId(Long.valueOf(purchases.getOrderId()));
+        purchaseResponseDto.setUserId(Long.valueOf(purchases.getUserId()));
+        purchaseResponseDto.setDeliveryAddress(purchases.getDeliveryAddress());
+        purchaseResponseDto.setPaymentTypeId(purchases.getPaymentTypeId());
+        purchaseResponseDto.setPaymentStatusId(purchases.getPaymentStatusId());
+        purchaseResponseDto.setDeliveryName(delivery.getStatus());
+        purchaseResponseDto.setTotal(purchases.getTotal());
+
+        return purchaseResponseDto;
+
     }
 
     @Override
     public Purchase savePurchase(PurchaseRequestDto purchaseRequest) {
+        //Crear delivery por defecto
+        Delivery defafultDelivery = new Delivery();
+        defafultDelivery.setDelivered(false);
+        defafultDelivery.setStatusId(2L);
+        defafultDelivery.setUserId(Long.valueOf(purchaseRequest.getUserId()));
+
+        Delivery savedDelivery = deliveryClientRest.createDelivery(defafultDelivery);
+
         // Crear la compra principal
         Purchase purchase = new Purchase();
         purchase.setUserId(purchaseRequest.getUserId());
         purchase.setDeliveryAddress(purchaseRequest.getDeliveryAddress());
         purchase.setPaymentTypeId(purchaseRequest.getPaymentTypeId());
         purchase.setPaymentStatusId(purchaseRequest.getPaymentStatusId());
+        purchase.setDeliveryId(savedDelivery.getId());
 
         // Calcular total
         BigDecimal total = purchaseRequest.getProducts().stream()

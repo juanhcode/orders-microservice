@@ -1,6 +1,7 @@
 package com.develop.orders_microservice.presentation.controllers;
 
 import com.develop.orders_microservice.application.dtos.PurchaseRequestDto;
+import com.develop.orders_microservice.application.dtos.PurchaseResponseDto;
 import com.develop.orders_microservice.domain.interfaces.PurchaseService;
 import com.develop.orders_microservice.domain.models.Purchase;
 import com.develop.orders_microservice.domain.models.PurchaseProduct;
@@ -35,7 +36,7 @@ public class PurchaseController {
 
     @GetMapping("/{userId}")
     public ResponseEntity<?> getPurchasesByUserId(@PathVariable Integer userId) {
-        List<Purchase> purchases = purchaseService.getPurchasesByUserId(userId);
+        List<PurchaseResponseDto> purchases = purchaseService.getPurchasesByUserId(userId);
         if (purchases.isEmpty()) {
             throw new ResourceNotFoundException("No purchases found for user with id: " + userId);
         }
@@ -44,8 +45,8 @@ public class PurchaseController {
 
     @GetMapping("/{userId}/{orderId}")
     public ResponseEntity<?> getPurchasesByUserIdAndOrderId(@PathVariable Integer userId, @PathVariable Integer orderId) {
-        List<Purchase> purchases = purchaseService.getPurchasesByUserIdAndOrderId(userId, orderId);
-        if (purchases.isEmpty()) {
+        PurchaseResponseDto purchases = purchaseService.getPurchaseByUserIdAndOrderId(userId, orderId);
+        if (purchases == null) {
             throw new ResourceNotFoundException("No purchases found for user with id: " + userId + " and order id: " + orderId);
         }
         return ResponseEntity.ok(purchases);
