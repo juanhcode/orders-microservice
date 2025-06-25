@@ -43,6 +43,15 @@ public class PurchaseController {
         return ResponseEntity.ok(purchases);
     }
 
+    @GetMapping
+    public ResponseEntity<?> getAllPurchases() {
+        List<PurchaseResponseDto> purchases = purchaseService.getAllPurchases();
+        if (purchases.isEmpty()) {
+            throw new ResourceNotFoundException("No purchases found");
+        }
+        return ResponseEntity.ok(purchases);
+    }
+
     @GetMapping("/{userId}/{orderId}")
     public ResponseEntity<?> getPurchasesByUserIdAndOrderId(@PathVariable Integer userId, @PathVariable Integer orderId) {
         PurchaseResponseDto purchases = purchaseService.getPurchaseByUserIdAndOrderId(userId, orderId);

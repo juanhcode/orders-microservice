@@ -99,6 +99,35 @@ public class PurchaseServiceImpl implements PurchaseService {
     }
 
     @Override
+    public List<PurchaseResponseDto> getAllPurchases() {
+        // Obtener todas las compras
+        List<Purchase> purchases = (List<Purchase>) purchaseRepository.findAll();
+        if (purchases.isEmpty()) {
+            throw new ResourceNotFoundException("No purchases found");
+        }
+        // Obtener los deliverys asociados a las compras
+        List<Delivery> deliveries = purchases.stream()
+                .map(purchase -> deliveryClientRest.getDeliveryById(purchase.getDeliveryId()))
+                .collect(Collectors.toList());
+        // Combinar las compras y los deliverys en PurchaseResponseDto
+        return purchases.stream().map(purchase -> {
+            Delivery delivery = deliveries.stream()
+                    .filter(d -> d.getId().equals(purchase.getDeliveryId()))
+                    .findFirst()
+                    .orElseThrow(() -> new ResourceNotFoundException("Delivery not found for purchase with id: " + purchase.getOrderId()));
+            PurchaseResponseDto purchaseResponseDto = new PurchaseResponseDto();
+            purchaseResponseDto.setOrderId(Long.valueOf(purchase.getOrderId()));
+            purchaseResponseDto.setUserId(Long.valueOf(purchase.getUserId()));
+            purchaseResponseDto.setDeliveryAddress(purchase.getDeliveryAddress());
+            purchaseResponseDto.setPaymentTypeId(purchase.getPaymentTypeId());
+            purchaseResponseDto.setPaymentStatusId(purchase.getPaymentStatusId());
+            purchaseResponseDto.setDeliveryName(delivery.getStatus());
+            purchaseResponseDto.setTotal(purchase.getTotal());
+            return purchaseResponseDto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
     public PurchaseResponseDto getPurchaseByUserIdAndOrderId(Integer userId, Integer orderId) {
         // Verificar si el usuario existe y si la orden existe
         Optional<Users> userOptional = usersClientRest.getUser(userId);
@@ -138,7 +167,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         Delivery defafultDelivery = new Delivery();
         defafultDelivery.setDelivered(false);
         defafultDelivery.setStatusId(2L);
-        defafultDelivery.setUserId(Long.valueOf(purchaseRequest.getUserId()));
+        defafultDelivery.setUserId(null);
 
         Delivery savedDelivery = deliveryClientRest.createDelivery(defafultDelivery);
 
