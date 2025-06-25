@@ -12,7 +12,8 @@ public class PurchaseResponseDto {
     private String deliveryAddress;
     private Integer paymentTypeId; // Cambiado de Long a Integer
     private Integer paymentStatusId; // Cambiado de Long a Integer
-    private long deliveryId;
+    private Long deliveryId;
+    private Long userDeliveryId;
     private String deliveryName;
     private BigDecimal total;
 }
