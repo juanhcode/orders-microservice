@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -33,6 +34,10 @@ public class Purchase {
     @Column(name = "payment_status_id")
     @NotNull(message = "Payment status ID cannot be null")
     private Integer paymentStatusId;
+
+    @Column(name = "delivery_id")
+    @NotNull(message = "Delivery ID cannot be null")
+    private Long deliveryId = 2L;
 
     @NotNull(message = "Total cannot be null")
     private BigDecimal total;
