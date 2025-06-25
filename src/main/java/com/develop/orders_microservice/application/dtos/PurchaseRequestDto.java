@@ -24,8 +24,7 @@ public class PurchaseRequestDto {
     @NotNull(message = "Payment status ID cannot be null")
     private Integer paymentStatusId; // Cambiado de Long a Integer
 
-    @NotNull(message = "Delivery ID cannot be null")
-    private Long deliveryId = 2L;
+    private String deliveryName;
 
     @NotEmpty(message = "Products list cannot be empty")
     private List<PurchaseProductDto> products;
