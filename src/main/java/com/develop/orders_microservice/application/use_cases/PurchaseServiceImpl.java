@@ -91,6 +91,7 @@ public class PurchaseServiceImpl implements PurchaseService {
             purchaseResponseDto.setDeliveryAddress(purchase.getDeliveryAddress());
             purchaseResponseDto.setPaymentTypeId(purchase.getPaymentTypeId());
             purchaseResponseDto.setPaymentStatusId(purchase.getPaymentStatusId());
+            purchaseResponseDto.setDeliveryId(purchase.getDeliveryId());
             purchaseResponseDto.setDeliveryName(delivery.getStatus());
             purchaseResponseDto.setTotal(purchase.getTotal());
             return purchaseResponseDto;
@@ -121,6 +122,7 @@ public class PurchaseServiceImpl implements PurchaseService {
             purchaseResponseDto.setDeliveryAddress(purchase.getDeliveryAddress());
             purchaseResponseDto.setPaymentTypeId(purchase.getPaymentTypeId());
             purchaseResponseDto.setPaymentStatusId(purchase.getPaymentStatusId());
+            purchaseResponseDto.setDeliveryId(purchase.getDeliveryId());
             purchaseResponseDto.setDeliveryName(delivery.getStatus());
             purchaseResponseDto.setTotal(purchase.getTotal());
             return purchaseResponseDto;
@@ -154,6 +156,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         purchaseResponseDto.setDeliveryAddress(purchases.getDeliveryAddress());
         purchaseResponseDto.setPaymentTypeId(purchases.getPaymentTypeId());
         purchaseResponseDto.setPaymentStatusId(purchases.getPaymentStatusId());
+        purchaseResponseDto.setDeliveryId(purchases.getDeliveryId());
         purchaseResponseDto.setDeliveryName(delivery.getStatus());
         purchaseResponseDto.setTotal(purchases.getTotal());
 
