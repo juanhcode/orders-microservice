@@ -9,10 +9,10 @@ import java.util.Optional;
 
 public interface PurchaseService {
     List<PurchaseResponseDto> getPurchasesByUserId(Integer userId);
+    List<PurchaseResponseDto> getAllPurchases();
     PurchaseResponseDto getPurchaseByUserIdAndOrderId(Integer userId, Integer orderId);
     Purchase savePurchase(PurchaseRequestDto purchaseRequest);
     void deletePurchase(Integer purchaseId);
     Purchase getPurchaseById(Integer purchaseId);
-
     Purchase updatePurchase(Integer orderId, PurchaseRequestDto purchaseRequest);
 }
