@@ -32,7 +32,7 @@ public class PurchaseController {
     @Lazy
     private final PaymentService paymentService;
 
-    public PurchaseController(PurchaseService purchaseService, SnsService snsService, PurchaseProductRepository purchaseProductRepository, PaymentService paymentService) {
+    public PurchaseController(PurchaseService purchaseService, PurchaseProductRepository purchaseProductRepository, PaymentService paymentService) {
         this.purchaseService = purchaseService;
         this.purchaseProductRepository = purchaseProductRepository;
         this.paymentService = paymentService;
