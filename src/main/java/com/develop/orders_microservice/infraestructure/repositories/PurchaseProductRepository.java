@@ -9,5 +9,5 @@ import java.util.List;
 @Repository
 public interface PurchaseProductRepository extends CrudRepository<PurchaseProduct, Long> {
     List<PurchaseProduct> findByPurchaseId(Long purchaseId);
-    void deleteByPurchaseId(Integer purchaseId);
+    void deleteByPurchaseId(Long purchaseId);
 }

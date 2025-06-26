@@ -4,14 +4,14 @@ import java.io.Serializable;
 import java.util.Objects;
 
 public class PurchaseProductId implements Serializable {
-    private Integer purchaseId;
-    private Integer productId;
+    private Long purchaseId;
+    private Long productId;
 
     // Constructores, equals, hashCode
     public PurchaseProductId() {
     }
 
-    public PurchaseProductId(Integer purchaseId, Integer productId) {
+    public PurchaseProductId(Long purchaseId, Long productId) {
         this.purchaseId = purchaseId;
         this.productId = productId;
     }
