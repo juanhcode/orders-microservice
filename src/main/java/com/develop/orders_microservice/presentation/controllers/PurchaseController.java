@@ -117,8 +117,8 @@ public class PurchaseController {
     @PostMapping("/create-test-payment")
     public String createTestPayment(@RequestParam long amount, @RequestParam String currency) throws StripeException {
         // URLs especiales de prueba de Stripe (funcionan sin frontend)
-        String successUrl = "https://stripe.com/docs/testing#successful-payments";
-        String cancelUrl = "https://stripe.com/docs/testing#failed-payments";
+        String successUrl = "http://localhost:8100/main/success";
+        String cancelUrl = "http://localhost:8100/main/home";
 
         return paymentService.createSimplePayment(amount, currency, successUrl, cancelUrl);
     }
