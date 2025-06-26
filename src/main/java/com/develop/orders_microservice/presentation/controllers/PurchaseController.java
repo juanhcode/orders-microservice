@@ -2,6 +2,7 @@ package com.develop.orders_microservice.presentation.controllers;
 
 import com.develop.orders_microservice.application.dtos.PurchaseRequestDto;
 import com.develop.orders_microservice.application.dtos.PurchaseResponseDto;
+import com.develop.orders_microservice.infraestructure.services.PaymentService;
 import com.develop.orders_microservice.domain.interfaces.PurchaseService;
 import com.develop.orders_microservice.domain.models.Purchase;
 import com.develop.orders_microservice.domain.models.PurchaseProduct;
@@ -9,29 +10,32 @@ import com.develop.orders_microservice.infraestructure.messaging.SnsService;
 import com.develop.orders_microservice.infraestructure.repositories.PurchaseProductRepository;
 import com.develop.orders_microservice.presentation.exceptions.BadRequestException;
 import com.develop.orders_microservice.presentation.exceptions.ResourceNotFoundException;
+import com.stripe.exception.StripeException;
+import com.stripe.model.checkout.Session;
 import jakarta.validation.Valid;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.HttpServerErrorException;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/orders/purchases")
 public class PurchaseController {
     @Lazy
     private final PurchaseService purchaseService;
+    @Lazy
     private final PurchaseProductRepository purchaseProductRepository;
+    @Lazy
+    private final PaymentService paymentService;
 
-    public PurchaseController(PurchaseService purchaseService, SnsService snsService, PurchaseProductRepository purchaseProductRepository) {
+    public PurchaseController(PurchaseService purchaseService, SnsService snsService, PurchaseProductRepository purchaseProductRepository, PaymentService paymentService) {
         this.purchaseService = purchaseService;
         this.purchaseProductRepository = purchaseProductRepository;
+        this.paymentService = paymentService;
     }
 
     @GetMapping("/{userId}")
@@ -108,5 +112,29 @@ public class PurchaseController {
         purchaseService.getPurchaseById(orderId);
         purchaseService.deletePurchase(orderId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/create-test-payment")
+    public String createTestPayment(@RequestParam long amount, @RequestParam String currency) throws StripeException {
+        // URLs especiales de prueba de Stripe (funcionan sin frontend)
+        String successUrl = "https://stripe.com/docs/testing#successful-payments";
+        String cancelUrl = "https://stripe.com/docs/testing#failed-payments";
+
+        return paymentService.createSimplePayment(amount, currency, successUrl, cancelUrl);
+    }
+
+    @GetMapping("/status")
+    public String checkStatus(@RequestParam String sessionId) {
+        try {
+            return paymentService.checkPaymentStatus(sessionId);
+        } catch (Exception e) {
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    @GetMapping("/payment-details")
+    public String getPaymentDetails(@RequestParam String sessionId) throws StripeException {
+        Session session = Session.retrieve(sessionId);
+        return session.toJson(); // Devuelve un Map para mayor flexibilidad
     }
 }

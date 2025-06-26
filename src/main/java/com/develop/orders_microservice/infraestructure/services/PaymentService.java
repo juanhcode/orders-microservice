@@ -1,4 +1,4 @@
-package com.develop.orders_microservice.application.use_cases;
+package com.develop.orders_microservice.infraestructure.services;
 
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
