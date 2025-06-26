@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: orders-microservice
-          image: juanhoyos/microservice:orders-v16
+          image: juanhoyos/microservice:orders-v17
           ports:
             - containerPort: 8084
           env:
@@ -67,6 +67,11 @@ spec:
                 secretKeyRef:
                   name: credentials
                   key: feignClientUrl
+            - name: STRIPE
+              valueFrom:
+                secretKeyRef:
+                  name: credentials
+                  key: stripeApiKey
           resources:
             limits:
               memory: "512Mi"
