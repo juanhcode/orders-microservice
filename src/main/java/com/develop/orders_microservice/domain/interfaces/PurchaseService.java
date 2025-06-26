@@ -5,7 +5,6 @@ import com.develop.orders_microservice.application.dtos.PurchaseResponseDto;
 import com.develop.orders_microservice.domain.models.Purchase;
 
 import java.util.List;
-import java.util.Optional;
 
 public interface PurchaseService {
     List<PurchaseResponseDto> getPurchasesByUserId(Integer userId);

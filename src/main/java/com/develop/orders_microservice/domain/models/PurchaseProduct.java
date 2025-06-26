@@ -13,11 +13,11 @@ import java.math.BigDecimal;
 public class PurchaseProduct {
     @Id
     @Column(name = "purchase_id")
-    private Integer purchaseId; // Cambiado de Long a Integer
+    private Long purchaseId;
 
     @Id
     @Column(name = "product_id")
-    private Integer productId; // Cambiado de Long a Integer
+    private Long productId;
 
     @NotNull
     private Integer quantity;

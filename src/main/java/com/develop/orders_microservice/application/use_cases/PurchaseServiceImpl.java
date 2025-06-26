@@ -198,8 +198,8 @@ public class PurchaseServiceImpl implements PurchaseService {
         List<PurchaseProduct> products = purchaseRequest.getProducts().stream()
                 .map(p -> {
                     PurchaseProduct pp = new PurchaseProduct();
-                    pp.setPurchaseId(savedPurchase.getOrderId());
-                    pp.setProductId(p.getProductId().intValue()); // Convertir Long a Integer
+                    pp.setPurchaseId(savedPurchase.getOrderId().longValue());
+                    pp.setProductId(p.getProductId());
                     pp.setQuantity(p.getQuantity());
                     pp.setTotal(BigDecimal.valueOf(p.getTotal()));
                     return pp;
@@ -274,7 +274,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         Delivery delivery = deliveryClientRest.getDeliveryById(updatedPurchase.getDeliveryId());
 
         // Eliminar los productos antiguos
-        purchaseProductRepository.deleteByPurchaseId(orderId);
+        purchaseProductRepository.deleteByPurchaseId(orderId.longValue());
 
         // Guardar los nuevos productos con validación
         List<PurchaseProduct> products = purchaseRequest.getProducts().stream()
@@ -284,8 +284,8 @@ public class PurchaseServiceImpl implements PurchaseService {
                     }
 
                     PurchaseProduct pp = new PurchaseProduct();
-                    pp.setPurchaseId(orderId);
-                    pp.setProductId(p.getProductId().intValue());
+                    pp.setPurchaseId(orderId.longValue());
+                    pp.setProductId(p.getProductId());
                     pp.setQuantity(p.getQuantity());
                     pp.setTotal(BigDecimal.valueOf(p.getTotal()));
                     return pp;
